@@ -37,11 +37,10 @@ gc = gspread.service_account_from_dict(creds)
 
 try:
     print("📄 Intentando abrir Google Sheet por ID...")
-    sh = gc.open_by_key(SHEET_ID)
+    sh = gc.open_by_key("1NU-X6GQXi21uHsG5RRUQ7iTZvrhxgvGNXQ-xFa4565M")  # Usando el ID proporcionado
 except Exception as e:
     print("⚠️ Error abriendo por ID:", e)
-    print("📄 Intentando abrir por NOMBRE (BOT TAMBORA)...")
-    sh = gc.open("BOT TAMBORA")  # Cambio aquí
+    raise
 
 worksheet = sh.sheet1
 print("✅ Google Sheet conectado correctamente")
@@ -75,31 +74,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 1-101\n"
         "• 1101\n"
         "• T1101\n"
-        "• C230\n"
-        "• C1\n"
-        "• C90"
+        "• C101\n"
+        "• 1 101\n"
+        "• C220"
     )
 
 # ==============================
-# Interpretar código (torre/casa + apto)
+# Interpretar código (torre + apto o casa)
 # ==============================
 def interpretar_codigo(texto: str):
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
+    tipo_vivienda = 'torre' if "T" in texto.upper() else 'casa' if "C" in texto.upper() else None
     if len(solo_numeros) < 3:
-        return None, None
-    return solo_numeros[0], solo_numeros[1:]
+        return None, None, tipo_vivienda
+    return solo_numeros[0], solo_numeros[1:], tipo_vivienda
 
 # ==============================
 # Handler principal
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
-    torre_str, apto_str = interpretar_codigo(texto)
+    torre_str, apto_str, tipo_vivienda = interpretar_codigo(texto)
 
-    print(f"[LOG] Entrada: '{texto}' -> torre/casa={torre_str}, apto={apto_str}")
+    print(f"[LOG] Entrada: '{texto}' -> torre={torre_str}, apto={apto_str}, tipo={tipo_vivienda}")
 
     if not torre_str or not apto_str:
-        await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o C230")
+        await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o 1101")
         return
 
     try:
@@ -109,26 +109,18 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No pude interpretar los datos.")
         return
 
-    # Validación para torres (1-21) y casas (1-280)
-    if torre_busqueda < 1 or (torre_busqueda > 21 and torre_busqueda != 0):
-        await update.message.reply_text("La torre debe ser un número entre 1 y 21.")
-        return
-
-    if apto_busqueda < 1 or apto_busqueda > 280:
-        await update.message.reply_text("El apartamento/casa debe estar entre 1 y 280.")
-        return
-
     datos = worksheet.get_all_records()
     print(f"[LOG] Registros cargados: {len(datos)}")
 
     for fila in datos:
         try:
+            tipo_vivienda_fila = str(fila.get("Tipo Vivienda", "")).strip().lower()
             torre_fila = int(fila.get("Torre"))
             apto_fila = int(fila.get("Apartamento"))
         except (TypeError, ValueError):
             continue
 
-        if torre_fila == torre_busqueda and apto_fila == apto_busqueda:
+        if tipo_vivienda == tipo_vivienda_fila and torre_fila == torre_busqueda and apto_fila == apto_busqueda:
             estado_raw = str(fila.get("Estado", "")).upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
@@ -137,7 +129,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
 
             respuesta = (
-                f"🏢 *Torre/Casa:* {fila.get('Tipo Vivienda')} {fila.get('Torre')}\n"
+                f"🏢 *{tipo_vivienda.capitalize()}:* {fila.get('Torre')}\n"
                 f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
                 f"🧍‍♂️ *Propietario:* {fila.get('Propietario')}\n"
                 f"💰 *Saldo:* {saldo}\n"
