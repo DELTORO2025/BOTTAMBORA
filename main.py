@@ -83,9 +83,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Interpretar código (torre/casa + apto)
 # ==============================
 def interpretar_codigo(texto: str):
+    # Eliminar caracteres no numéricos o letras
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
     if len(solo_numeros) < 3:
         return None, None
+    # Primer número es la torre/casa, el resto es el apartamento
     return solo_numeros[0], solo_numeros[1:]
 
 # ==============================
@@ -124,11 +126,15 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for fila in datos:
         print(f"[LOG] Comparando: {fila.get('Tipo Vivienda')} - {fila.get('Apartamento')}")
+
         try:
             tipo_fila = str(fila.get("Tipo Vivienda")).lower()
             apto_fila = int(fila.get("Apartamento"))
         except (TypeError, ValueError):
             continue
+
+        # Agregar debug para comparar
+        print(f"[LOG] Comparando {tipo_vivienda} con {tipo_fila} y {apto_vivienda} con {apto_fila}")
 
         # Compara los datos
         if tipo_vivienda.lower() == tipo_fila and apto_vivienda == apto_fila:
