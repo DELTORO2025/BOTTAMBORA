@@ -110,6 +110,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No pude interpretar los datos. Asegúrate de que el formato sea correcto.")
         return
 
+    print(f"[LOG] Vivienda: {vivienda}, Apartamento: {apto_str}")
+
     try:
         tipo_vivienda = str(tipo_str)
         apto_vivienda = int(apto_str)
