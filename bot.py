@@ -1,4 +1,4 @@
-mport os
+import os
 import json
 from dotenv import load_dotenv
 from telegram import Update
@@ -70,39 +70,56 @@ def buscar_columna(fila: dict, contiene_subcadenas):
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Hola, envíame la torre y apartamento.\n"
+        "👋 Hola, envíame el código de la torre o casa.\n"
         "Ejemplos válidos:\n"
-        "• 1-101\n"
-        "• 1101\n"
-        "• T1101\n"
-        "• 1 101"
+        "• 1101 (Torre)\n"
+        "• C1 (Casa)\n"
+        "• C220 (Casa)\n"
+        "• T1101 (Torre)"
     )
 
 # ==============================
-# Interpretar código (torre + apto)
+# Interpretar código (torre o casa)
 # ==============================
 def interpretar_codigo(texto: str):
-    solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
-    if len(solo_numeros) < 3:
-        return None, None
-    return solo_numeros[0], solo_numeros[1:]
+    texto = texto.strip().upper()
+    
+    # Si el texto comienza con "T" o es solo un número, es una torre
+    if texto.startswith("T"):
+        tipo_vivienda = "Torre"
+        codigo_vivienda = texto[1:]  # El código de la torre o apartamento
+    # Si el texto comienza con "C", es una casa
+    elif texto.startswith("C"):
+        tipo_vivienda = "Casa"
+        codigo_vivienda = texto[1:]  # El código de la casa
+        # Validar si el número de casa es válido (1-250)
+        if not 1 <= int(codigo_vivienda) <= 250:
+            tipo_vivienda = "Invalido"
+    else:
+        tipo_vivienda = "Desconocido"
+        codigo_vivienda = texto  # El código del apartamento o casa
+
+    # Retornamos tipo de vivienda y código
+    return tipo_vivienda, codigo_vivienda
 
 # ==============================
 # Handler principal
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
-    torre_str, apto_str = interpretar_codigo(texto)
+    tipo_vivienda, codigo_vivienda = interpretar_codigo(texto)
 
-    print(f"[LOG] Entrada: '{texto}' -> torre={torre_str}, apto={apto_str}")
+    print(f"[LOG] Entrada: '{texto}' -> tipo={tipo_vivienda}, código={codigo_vivienda}")
 
-    if not torre_str or not apto_str:
-        await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o 1101")
+    if tipo_vivienda == "Desconocido" or not codigo_vivienda:
+        await update.message.reply_text("Formato incorrecto. Ejemplo: T1101 o C1")
+        return
+    elif tipo_vivienda == "Invalido":
+        await update.message.reply_text("El número de casa debe estar entre 1 y 250.")
         return
 
     try:
-        torre_busqueda = int(torre_str)
-        apto_busqueda = int(apto_str)
+        codigo_busqueda = int(codigo_vivienda)
     except ValueError:
         await update.message.reply_text("No pude interpretar los datos.")
         return
@@ -112,12 +129,12 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for fila in datos:
         try:
-            torre_fila = int(fila.get("Torre"))
-            apto_fila = int(fila.get("Apartamento"))
+            tipo_fila = fila.get("Tipo Vivienda", "").strip()
+            codigo_fila = int(fila.get("Código", 0))
         except (TypeError, ValueError):
             continue
 
-        if torre_fila == torre_busqueda and apto_fila == apto_busqueda:
+        if tipo_fila == tipo_vivienda and codigo_fila == codigo_busqueda:
             estado_raw = str(fila.get("Estado", "")).upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
@@ -126,8 +143,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
 
             respuesta = (
-                f"🏢 *Torre:* {fila.get('Torre')}\n"
-                f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
+                f"🏢 *Tipo de Vivienda:* {tipo_fila}\n"
+                f"🏠 *Código:* {fila.get('Código')}\n"
                 f"🧍‍♂️ *Propietario:* {fila.get('Propietario')}\n"
                 f"💰 *Saldo:* {saldo}\n"
                 f"{emoji} *Estado:* {estado_txt}\n"
@@ -138,7 +155,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-    await update.message.reply_text("❌ No encontré información para ese apartamento.")
+    await update.message.reply_text(f"❌ No encontré información para esa {tipo_vivienda}.")
 
 # ==============================
 # Iniciar el bot
