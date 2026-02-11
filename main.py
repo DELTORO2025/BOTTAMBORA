@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import gspread
+from flask import Flask, request
 
 # ==============================
 # Cargar variables de entorno
@@ -161,15 +162,32 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ No encontré información para ese apartamento o casa.")
 
 # ==============================
-# Iniciar el bot
+# Configuración del Webhook con Flask
+# ==============================
+app = Flask(__name__)
+
+@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode("UTF-8")
+    update = Update.de_json(json.loads(json_str), app.bot)
+    app.bot.process_new_updates([update])
+    return 'OK', 200
+
+# ==============================
+# Iniciar el bot con Webhook
 # ==============================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-    print("🤖 BOT ACTIVO EN RAILWAY")
-    app.run_polling()
+    # Establecer un webhook
+    app.run_webhook(
+        listen="0.0.0.0",  # Asegúrate de que esto apunte a tu servidor
+        port=5000,
+        url_path=BOT_TOKEN,
+        webhook_url="https://<tu-dominio>/path-to-webhook",  # Pon tu URL de webhook aquí
+    )
 
 if __name__ == "__main__":
     main()
