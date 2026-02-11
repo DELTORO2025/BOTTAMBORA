@@ -181,12 +181,12 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-    # Establecer un webhook
+    # **Reemplaza <tu-dominio> con el nombre de tu servidor en Railway o el servicio que uses**
     app.run_webhook(
         listen="0.0.0.0",  # Asegúrate de que esto apunte a tu servidor
         port=5000,
         url_path=BOT_TOKEN,
-        webhook_url="https://<tu-dominio>/path-to-webhook",  # Pon tu URL de webhook aquí
+        webhook_url="https://<tu-dominio>.up.railway.app/" + BOT_TOKEN  # Reemplaza con tu URL completa
     )
 
 if __name__ == "__main__":
