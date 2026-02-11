@@ -138,7 +138,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Compara los datos
         if tipo_vivienda.lower() == tipo_fila and apto_vivienda == apto_fila:
-            estado_raw = str(fila.get("Estado", "")).upper()
+            estado_raw = str(fila.get("Estado", "")).strip().upper()  # Asegurar que esté en mayúsculas
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
             saldo = buscar_columna(fila, ["saldo"]) or "N/A"
@@ -159,17 +159,3 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
     await update.message.reply_text("❌ No encontré información para ese apartamento o casa.")
-
-# ==============================
-# Iniciar el bot con Polling
-# ==============================
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-
-    # Usa polling en lugar de webhook
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
