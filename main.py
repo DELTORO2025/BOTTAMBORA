@@ -40,8 +40,8 @@ try:
     sh = gc.open_by_key(SHEET_ID)
 except Exception as e:
     print("⚠️ Error abriendo por ID:", e)
-    print("📄 Intentando abrir por NOMBRE (BOTGUITARRA)...")
-    sh = gc.open("BOTGUITARRA")
+    print("📄 Intentando abrir por NOMBRE (BOT TAMBORA)...")
+    sh = gc.open("BOT TAMBORA")  # Cambio aquí
 
 worksheet = sh.sheet1
 print("✅ Google Sheet conectado correctamente")
@@ -70,58 +70,52 @@ def buscar_columna(fila: dict, contiene_subcadenas):
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Hola, envíame el código de la torre o casa.\n"
+        "👋 Hola, envíame la torre o casa y apartamento.\n"
         "Ejemplos válidos:\n"
-        "• 1101 (Torre)\n"
-        "• C1 (Casa)\n"
-        "• C220 (Casa)\n"
-        "• T1101 (Torre)"
+        "• 1-101\n"
+        "• 1101\n"
+        "• T1101\n"
+        "• C230\n"
+        "• C1\n"
+        "• C90"
     )
 
 # ==============================
-# Interpretar código (torre o casa)
+# Interpretar código (torre/casa + apto)
 # ==============================
 def interpretar_codigo(texto: str):
-    texto = texto.strip().upper()
-    
-    # Si el texto comienza con "T" o es solo un número, es una torre
-    if texto.startswith("T"):
-        tipo_vivienda = "Torre"
-        codigo_vivienda = texto[1:]  # El código de la torre o apartamento
-    # Si el texto comienza con "C", es una casa
-    elif texto.startswith("C"):
-        tipo_vivienda = "Casa"
-        codigo_vivienda = texto[1:]  # El código de la casa
-        # Validar si el número de casa es válido (1-250)
-        if not 1 <= int(codigo_vivienda) <= 250:
-            tipo_vivienda = "Invalido"
-    else:
-        tipo_vivienda = "Desconocido"
-        codigo_vivienda = texto  # El código del apartamento o casa
-
-    # Retornamos tipo de vivienda y código
-    return tipo_vivienda, codigo_vivienda
+    solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
+    if len(solo_numeros) < 3:
+        return None, None
+    return solo_numeros[0], solo_numeros[1:]
 
 # ==============================
 # Handler principal
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
-    tipo_vivienda, codigo_vivienda = interpretar_codigo(texto)
+    torre_str, apto_str = interpretar_codigo(texto)
 
-    print(f"[LOG] Entrada: '{texto}' -> tipo={tipo_vivienda}, código={codigo_vivienda}")
+    print(f"[LOG] Entrada: '{texto}' -> torre/casa={torre_str}, apto={apto_str}")
 
-    if tipo_vivienda == "Desconocido" or not codigo_vivienda:
-        await update.message.reply_text("Formato incorrecto. Ejemplo: T1101 o C1")
-        return
-    elif tipo_vivienda == "Invalido":
-        await update.message.reply_text("El número de casa debe estar entre 1 y 250.")
+    if not torre_str or not apto_str:
+        await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o C230")
         return
 
     try:
-        codigo_busqueda = int(codigo_vivienda)
+        torre_busqueda = int(torre_str)
+        apto_busqueda = int(apto_str)
     except ValueError:
         await update.message.reply_text("No pude interpretar los datos.")
+        return
+
+    # Validación para torres (1-21) y casas (1-280)
+    if torre_busqueda < 1 or (torre_busqueda > 21 and torre_busqueda != 0):
+        await update.message.reply_text("La torre debe ser un número entre 1 y 21.")
+        return
+
+    if apto_busqueda < 1 or apto_busqueda > 280:
+        await update.message.reply_text("El apartamento/casa debe estar entre 1 y 280.")
         return
 
     datos = worksheet.get_all_records()
@@ -129,12 +123,12 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for fila in datos:
         try:
-            tipo_fila = fila.get("Tipo Vivienda", "").strip()
-            codigo_fila = int(fila.get("Código", 0))
+            torre_fila = int(fila.get("Torre"))
+            apto_fila = int(fila.get("Apartamento"))
         except (TypeError, ValueError):
             continue
 
-        if tipo_fila == tipo_vivienda and codigo_fila == codigo_busqueda:
+        if torre_fila == torre_busqueda and apto_fila == apto_busqueda:
             estado_raw = str(fila.get("Estado", "")).upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
@@ -143,8 +137,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
 
             respuesta = (
-                f"🏢 *Tipo de Vivienda:* {tipo_fila}\n"
-                f"🏠 *Código:* {fila.get('Código')}\n"
+                f"🏢 *Torre/Casa:* {fila.get('Tipo Vivienda')} {fila.get('Torre')}\n"
+                f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
                 f"🧍‍♂️ *Propietario:* {fila.get('Propietario')}\n"
                 f"💰 *Saldo:* {saldo}\n"
                 f"{emoji} *Estado:* {estado_txt}\n"
@@ -155,7 +149,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-    await update.message.reply_text(f"❌ No encontré información para esa {tipo_vivienda}.")
+    await update.message.reply_text("❌ No encontré información para ese apartamento o casa.")
 
 # ==============================
 # Iniciar el bot
