@@ -121,6 +121,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Registros cargados: {len(datos)}")
 
     for fila in datos:
+        print(f"[LOG] Comparando: {fila.get('Tipo Vivienda')} - {fila.get('Apartamento')}")
         try:
             tipo_fila = str(fila.get("Tipo Vivienda")).lower()
             apto_fila = int(fila.get("Apartamento"))
