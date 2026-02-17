@@ -44,9 +44,7 @@ except Exception as e:
     sh = gc.open("BOT TAMBORA")  # Nombre correcto de la hoja de cálculo en Google Sheets
 
 worksheet = sh.sheet1
-print("✅ Google Sheet conectado correctamente")
-
-# ==============================
+print("✅ Google Sheet conectado correctamente")# ==============================
 # Mapeo de estados
 # ==============================
 ESTADOS = {
@@ -63,9 +61,7 @@ def buscar_columna(fila: dict, contiene_subcadenas):
         nombre = str(clave).strip().lower()
         if all(sub in nombre for sub in contiene_subcadenas):
             return valor
-    return None
-
-# ==============================
+    return None# ==============================
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,34 +81,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Interpretar código (torre/casa + apto)
 # ==============================
 def interpretar_codigo(texto: str):
-    # Limpiar el texto y extraer los números y las letras
     texto = texto.strip().replace("-", "").replace(" ", "")  # Eliminar espacios y guiones
 
     # Detectar si la entrada tiene una letra para "torre" o "casa" y el número del apartamento
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())  # Extraer solo los números
     solo_letras = ''.join(ch for ch in texto if ch.isalpha())  # Extraer solo las letras
 
-    print(f"[DEBUG] Texto procesado: {texto}")  # Depuración
-    print(f"[DEBUG] Solo letras extraídas: {solo_letras}")  # Depuración
-    print(f"[DEBUG] Solo números extraídos: {solo_numeros}")  # Depuración
+    # Depuración
+    print(f"[DEBUG] Texto procesado: {texto}")
+    print(f"[DEBUG] Solo letras extraídas: {solo_letras}")
+    print(f"[DEBUG] Solo números extraídos: {solo_numeros}")
 
-    if len(solo_numeros) < 3:
-        return None, None
+    # Si solo hay números
+    if len(solo_numeros) >= 3:
+        apto = solo_numeros
+        tipo = None
 
-    tipo = solo_letras.lower()  # Convertir las letras a minúsculas
-    apto = solo_numeros
-
-    # Verificar si las letras indican "torre" o "casa"
-    if tipo == "c" or tipo == "casa":
-        tipo = "casa"
-    elif tipo == "t" or tipo == "torre":
-        tipo = "torre"
+        # Si tiene más de 3 dígitos, podemos asumir que es una torre o casa
+        if 1 <= int(apto) <= 280:  # Límite de apartamentos para casa
+            tipo = "casa"
+        elif 1 <= int(apto) <= 21:  # Límite de apartamentos para torre
+            tipo = "torre"
+        else:
+            tipo = None
     else:
-        tipo = None  # Si no es ni "c" ni "t", devolvemos None
+        tipo = solo_letras.lower()  # Asignar el tipo según las letras
+        apto = solo_numeros
 
-    return tipo, apto
-
-# ==============================
+    return tipo, apto# ==============================
 # Handler principal
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -189,23 +185,11 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-    await update.message.reply_text("❌ No encontré información para esa vivienda.")
-
-# ==============================
+    await update.message.reply_text("❌ No encontré información para esa vivienda.")# ==============================
 # Configuración del Bot y Polling
 # ==============================
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Comandos
-    application.add_handler(CommandHandler("start", start))
-
-    # Mensajes
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-
-    # Iniciar el bot con polling
-    print("✅ Bot activo y escuchando...")
-    application.run_polling()
-
-if __name__ == "__main__":
-    main()
+    application.add_handler
