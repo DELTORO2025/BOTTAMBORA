@@ -113,14 +113,18 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             estado_raw = str(fila.get("Estado", "")).upper().strip()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
-            respuesta = (
-                f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
-                f"{'🏗️ *Torre:* ' + torre_fila + '\\n' if torre_fila else ''}"
-                f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
-                f"👤 *Propietario:* {fila.get('Propietario')}\n"
-                f"💰 *Saldo:* {fila.get('Saldo')}\n"
-                f"{emoji} *Estado:* {estado_txt}"
-            )
+           respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
+
+if torre_fila:
+    respuesta += f"🏗️ *Torre:* {torre_fila}\n"
+
+respuesta += (
+    f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
+    f"👤 *Propietario:* {fila.get('Propietario')}\n"
+    f"💰 *Saldo:* {fila.get('Saldo')}\n"
+    f"{emoji} *Estado:* {estado_txt}"
+)
+
 
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
