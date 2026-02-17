@@ -42,27 +42,31 @@ ESTADOS = {
 def interpretar_codigo(texto: str):
     texto = texto.strip().lower().replace("-", "").replace(" ", "")
 
-    # Caso 1201 → Torre 1, Apto 201
-    if texto.isdigit() and len(texto) == 4:
-        torre = texto[0]
-        apto = texto[1:]
+    # Solo números (ej: 1201, 10201, 210104)
+    if texto.isdigit() and len(texto) >= 4:
+        apto = texto[-3:]        # últimos 3 dígitos
+        torre = texto[:-3]       # todo lo anterior
+
+        if torre == "":
+            return "casa", apto, None
+
         return "torre", apto, torre
 
-    # Caso T1201 o torre1201
+    # Caso T10201
     if texto.startswith("t"):
         numeros = ''.join(c for c in texto if c.isdigit())
-        if len(numeros) == 4:
-            return "torre", numeros[1:], numeros[0]
-        elif numeros:
-            return "torre", numeros, None
+        if len(numeros) >= 4:
+            apto = numeros[-3:]
+            torre = numeros[:-3]
+            return "torre", apto, torre
 
-    # Caso C90 o casa90
+    # Caso C90
     if texto.startswith("c"):
         numeros = ''.join(c for c in texto if c.isdigit())
         if numeros:
             return "casa", numeros, None
 
-    # Solo número → asumir casa
+    # Solo número pequeño → casa
     if texto.isdigit():
         return "casa", texto, None
 
