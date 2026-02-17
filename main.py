@@ -97,7 +97,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
     tipo_str, apto_str = interpretar_codigo(texto)
 
-    print(f"[LOG] Entrada: '{texto}' -> tipo={tipo_str}, apto={apto_str}")
+    print(f"[DEBUG] Entrada: '{texto}' -> tipo={tipo_str}, apto={apto_str}")
 
     if not tipo_str or not apto_str:
         await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o 1101")
@@ -112,7 +112,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No pude interpretar los datos. Asegúrate de que el formato sea correcto.")
         return
 
-    print(f"[LOG] Vivienda: {vivienda}, Apartamento: {apto_str}")
+    print(f"[DEBUG] Vivienda: {vivienda}, Apartamento: {apto_str}")
 
     try:
         tipo_vivienda = str(tipo_str)
@@ -122,21 +122,21 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     datos = worksheet.get_all_records()
-    print(f"[LOG] Registros cargados: {len(datos)}")
+    print(f"[DEBUG] Registros cargados: {len(datos)}")
 
     for fila in datos:
-        print(f"[LOG] Comparando: {fila.get('Tipo Vivienda')} - {fila.get('Apartamento')}")
+        # Depuración: Verificación de lo que se está comparando
+        print(f"[DEBUG] Comparando tipo vivienda: {tipo_vivienda} con {fila.get('Tipo Vivienda')} y apartamento: {apto_vivienda} con {fila.get('Apartamento')}")
 
         try:
-            tipo_fila = str(fila.get("Tipo Vivienda")).lower()
+            tipo_fila = str(fila.get("Tipo Vivienda")).lower().strip()  # Eliminar espacios
             apto_fila = int(fila.get("Apartamento"))
         except (TypeError, ValueError):
             continue
 
-        # Agregar debug para comparar
-        print(f"[LOG] Comparando {tipo_vivienda} con {tipo_fila} y {apto_vivienda} con {apto_fila}")
+        # Agregar depuración para comparar
+        print(f"[DEBUG] Comparando {tipo_vivienda} con {tipo_fila} y {apto_vivienda} con {apto_fila}")
 
-        # Compara los datos
         if tipo_vivienda.lower() == tipo_fila and apto_vivienda == apto_fila:
             estado_raw = str(fila.get("Estado", "")).strip().upper()  # Asegurar que esté en mayúsculas
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
