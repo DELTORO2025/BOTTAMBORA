@@ -184,4 +184,18 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ==============================
 # Configuración del Bot y Polling
 # ==============================
-def main
+def main():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Comandos
+    application.add_handler(CommandHandler("start", start))
+
+    # Mensajes
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
+    # Iniciar el bot con polling
+    print("✅ Bot activo y escuchando...")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
