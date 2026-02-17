@@ -16,10 +16,6 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
 
 SHEET_ID = SHEET_ID.strip() if SHEET_ID else None
 
-print("[ENV] BOT_TOKEN definido:", bool(BOT_TOKEN))
-print("[ENV] SHEET_ID valor:", repr(SHEET_ID))
-print("[ENV] GOOGLE_CREDENTIALS definido:", GOOGLE_CREDENTIALS is not None)
-
 if not BOT_TOKEN:
     raise RuntimeError("❌ Falta BOT_TOKEN en las variables de entorno")
 if not SHEET_ID:
@@ -34,11 +30,8 @@ creds = json.loads(GOOGLE_CREDENTIALS)
 gc = gspread.service_account_from_dict(creds)
 
 try:
-    print("📄 Intentando abrir Google Sheet por ID...")
     sh = gc.open_by_key(SHEET_ID)
-except Exception as e:
-    print("⚠️ Error abriendo por ID:", e)
-    print("📄 Intentando abrir por NOMBRE (BOT TAMBORA)...")
+except Exception:
     sh = gc.open("BOT TAMBORA")
 
 worksheet = sh.sheet1
@@ -71,29 +64,31 @@ def interpretar_codigo(texto: str):
 
     print(f"[DEBUG] Texto normalizado: {texto}")
 
-    # Caso: empieza con C (casa)
+    # Caso 1201 → torre 1 apto 201
+    if texto.isdigit() and len(texto) == 4:
+        torre = texto[0]
+        apto = texto[1:]
+        return "torre", apto, torre
+
+    # Caso torre1201 o t1201
+    if texto.startswith("t"):
+        numeros = ''.join(ch for ch in texto if ch.isdigit())
+        if len(numeros) >= 3:
+            if len(numeros) == 4:
+                return "torre", numeros[1:], numeros[0]
+            return "torre", numeros, None
+
+    # Caso casa90 o c90
     if texto.startswith("c"):
         numeros = ''.join(ch for ch in texto if ch.isdigit())
         if numeros:
-            return "casa", numeros
+            return "casa", numeros, None
 
-    # Caso: empieza con T (torre)
-    if texto.startswith("t"):
-        numeros = ''.join(ch for ch in texto if ch.isdigit())
-        if numeros:
-            return "torre", numeros
-
-    # Caso: formato tipo 1101 (torre 1 apto 101)
+    # Solo número → asumir casa
     if texto.isdigit():
-        if len(texto) == 4:
-            return "torre", texto[1:]
+        return "casa", texto, None
 
-        numero = int(texto)
-
-        if 1 <= numero <= 280:
-            return "casa", texto
-
-    return None, None
+    return None, None, None
 
 # ==============================
 # Comando /start
@@ -102,13 +97,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Hola, envíame la torre o casa.\n\n"
         "Ejemplos válidos:\n"
-        "• 1-101\n"
-        "• 1101\n"
-        "• T1101\n"
-        "• C230\n"
-        "• 1 101\n"
-        "• casa90\n"
-        "• torre101"
+        "• 1201\n"
+        "• T1201\n"
+        "• torre1201\n"
+        "• C90\n"
+        "• casa90"
     )
 
 # ==============================
@@ -118,11 +111,12 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
     print(f"[DEBUG] Texto recibido: {texto}")
 
-    tipo_str, apto_str = interpretar_codigo(texto)
-    print(f"[DEBUG] Interpretado -> tipo={tipo_str}, apto={apto_str}")
+    tipo_str, apto_str, torre_num = interpretar_codigo(texto)
+
+    print(f"[DEBUG] Interpretado -> tipo={tipo_str}, apto={apto_str}, torre={torre_num}")
 
     if not tipo_str or not apto_str:
-        await update.message.reply_text("❌ Formato incorrecto. Ejemplo: 1101 o C90")
+        await update.message.reply_text("❌ Formato incorrecto. Ejemplo: 1201 o C90")
         return
 
     try:
@@ -132,19 +126,22 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     datos = worksheet.get_all_records()
-    print(f"[DEBUG] Registros cargados: {len(datos)}")
 
     for fila in datos:
         try:
             tipo_fila = str(fila.get("Tipo Vivienda")).lower().strip()
             apto_fila = int(fila.get("Apartamento"))
+            torre_fila = str(fila.get("Torre")).strip() if fila.get("Torre") else None
         except (TypeError, ValueError):
             continue
 
-        print(f"[DEBUG] Comparando {tipo_str}-{apto_vivienda} con {tipo_fila}-{apto_fila}")
-
+        # Comparación principal
         if tipo_str == tipo_fila and apto_vivienda == apto_fila:
-            print("[DEBUG] ¡Coincidencia encontrada!")
+
+            # Si es torre y el usuario especificó número
+            if tipo_str == "torre" and torre_num:
+                if str(torre_num) != torre_fila:
+                    continue
 
             estado_raw = str(fila.get("Estado", "")).strip().upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
@@ -155,6 +152,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             respuesta = (
                 f"🏢 *Tipo Vivienda:* {fila.get('Tipo Vivienda')}\n"
+                f"{'🏗️ *Torre:* ' + str(fila.get('Torre')) + '\\n' if fila.get('Torre') else ''}"
                 f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
                 f"🧍‍♂️ *Propietario:* {fila.get('Propietario')}\n"
                 f"💰 *Saldo:* {saldo}\n"
