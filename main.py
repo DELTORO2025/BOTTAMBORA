@@ -83,13 +83,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Interpretar código (torre/casa + apto)
 # ==============================
 def interpretar_codigo(texto: str):
-    # Eliminar caracteres no numéricos o letras
+    # Eliminar caracteres no numéricos y letras
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
+    solo_letras = ''.join(ch for ch in texto if ch.isalpha())
+    
+    print(f"[DEBUG] Solo letras extraídas: {solo_letras}")  # Depuración
     print(f"[DEBUG] Solo números extraídos: {solo_numeros}")  # Depuración
+
     if len(solo_numeros) < 3:
         return None, None
-    # Primer número es la torre/casa, el resto es el apartamento
-    return solo_numeros[0], solo_numeros[1:]
+
+    # Primer parte es la letra (tipo), el resto es el apartamento
+    tipo = solo_letras
+    apto = solo_numeros
+
+    return tipo, apto
 
 # ==============================
 # Handler principal
