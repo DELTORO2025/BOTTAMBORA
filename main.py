@@ -18,14 +18,14 @@ if not BOT_TOKEN or not SHEET_ID or not GOOGLE_CREDENTIALS:
     raise RuntimeError("❌ Faltan variables de entorno")
 
 # ==============================
-# Google Sheets
+# Conexión Google Sheets
 # ==============================
 creds = json.loads(GOOGLE_CREDENTIALS)
 gc = gspread.service_account_from_dict(creds)
 sh = gc.open_by_key(SHEET_ID)
 worksheet = sh.sheet1
 
-print("✅ Google Sheet conectado")
+print("✅ Google Sheet conectado correctamente")
 
 # ==============================
 # Estados
@@ -42,41 +42,46 @@ ESTADOS = {
 def interpretar_codigo(texto: str):
     texto = texto.strip().lower().replace("-", "").replace(" ", "")
 
-    # 1201 → torre 1 apto 201
+    # Caso 1201 → Torre 1, Apto 201
     if texto.isdigit() and len(texto) == 4:
-        return "torre", texto[1:], texto[0]
+        torre = texto[0]
+        apto = texto[1:]
+        return "torre", apto, torre
 
-    # t1201
+    # Caso T1201 o torre1201
     if texto.startswith("t"):
         numeros = ''.join(c for c in texto if c.isdigit())
         if len(numeros) == 4:
             return "torre", numeros[1:], numeros[0]
-        return "torre", numeros, None
+        elif numeros:
+            return "torre", numeros, None
 
-    # c90
+    # Caso C90 o casa90
     if texto.startswith("c"):
         numeros = ''.join(c for c in texto if c.isdigit())
-        return "casa", numeros, None
+        if numeros:
+            return "casa", numeros, None
 
-    # solo número → casa
+    # Solo número → asumir casa
     if texto.isdigit():
         return "casa", texto, None
 
     return None, None, None
 
 # ==============================
-# Start
+# Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Envíame:\n"
+        "👋 Envíame:\n\n"
         "• 1201\n"
         "• T1201\n"
-        "• C90"
+        "• C90\n"
+        "• casa90"
     )
 
 # ==============================
-# Buscar
+# Buscar vivienda
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
@@ -89,7 +94,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         apto = int(apto)
-    except:
+    except ValueError:
         await update.message.reply_text("❌ Número inválido.")
         return
 
@@ -100,7 +105,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tipo_fila = str(fila.get("Tipo Vivienda", "")).lower().strip()
             apto_fila = int(fila.get("Apartamento", 0))
             torre_fila = str(fila.get("Torre", "")).strip()
-        except:
+        except (ValueError, TypeError):
             continue
 
         if tipo == tipo_fila and apto == apto_fila:
@@ -110,21 +115,19 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if torre_fila != str(torre):
                     continue
 
-            estado_raw = str(fila.get("Estado", "")).upper().strip()
+            estado_raw = str(fila.get("Estado", "")).strip().upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
-           respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
+            # Construir respuesta sin errores de f-string
+            respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
 
-if torre_fila:
-    respuesta += f"🏗️ *Torre:* {torre_fila}\n"
+            if torre_fila:
+                respuesta += f"🏗️ *Torre:* {torre_fila}\n"
 
-respuesta += (
-    f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
-    f"👤 *Propietario:* {fila.get('Propietario')}\n"
-    f"💰 *Saldo:* {fila.get('Saldo')}\n"
-    f"{emoji} *Estado:* {estado_txt}"
-)
-
+            respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
+            respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
+            respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
+            respuesta += f"{emoji} *Estado:* {estado_txt}"
 
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
@@ -132,7 +135,7 @@ respuesta += (
     await update.message.reply_text("❌ No encontrado.")
 
 # ==============================
-# Main
+# Iniciar Bot
 # ==============================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
