@@ -85,6 +85,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def interpretar_codigo(texto: str):
     # Eliminar caracteres no numéricos o letras
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
+    print(f"[DEBUG] Solo números extraídos: {solo_numeros}")  # Depuración
     if len(solo_numeros) < 3:
         return None, None
     # Primer número es la torre/casa, el resto es el apartamento
@@ -95,9 +96,14 @@ def interpretar_codigo(texto: str):
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
+
+    # Depuración para verificar el texto recibido
+    print(f"[DEBUG] Texto recibido: {texto}")
+
     tipo_str, apto_str = interpretar_codigo(texto)
 
-    print(f"[DEBUG] Entrada: '{texto}' -> tipo={tipo_str}, apto={apto_str}")
+    # Depuración para verificar el tipo y apartamento
+    print(f"[DEBUG] Entrada procesada -> tipo={tipo_str}, apto={apto_str}")
 
     if not tipo_str or not apto_str:
         await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o 1101")
@@ -129,7 +135,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[DEBUG] Comparando tipo vivienda: {tipo_vivienda} con {fila.get('Tipo Vivienda')} y apartamento: {apto_vivienda} con {fila.get('Apartamento')}")
 
         try:
-            tipo_fila = str(fila.get("Tipo Vivienda")).lower().strip()  # Eliminar espacios
+            tipo_fila = str(fila.get("Tipo Vivienda")).lower().strip()  # Asegurarse de que no haya espacios adicionales
             apto_fila = int(fila.get("Apartamento"))
         except (TypeError, ValueError):
             continue
@@ -138,6 +144,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"[DEBUG] Comparando {tipo_vivienda} con {tipo_fila} y {apto_vivienda} con {apto_fila}")
 
         if tipo_vivienda.lower() == tipo_fila and apto_vivienda == apto_fila:
+            print(f"[DEBUG] ¡Coincidencia encontrada!")
             estado_raw = str(fila.get("Estado", "")).strip().upper()  # Asegurar que esté en mayúsculas
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
@@ -154,6 +161,9 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🚗 *Placa carro:* {placa_carro}\n"
                 f"🏍️ *Placa moto:* {placa_moto}"
             )
+
+            # Depuración antes de enviar la respuesta
+            print(f"[DEBUG] Respuesta enviada: {respuesta}")
 
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
