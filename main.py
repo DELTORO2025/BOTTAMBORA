@@ -69,7 +69,6 @@ def buscar_columna(fila: dict, contiene_subcadenas):
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[DEBUG] Comando /start recibido")  # Depuración para ver si el bot recibe el comando
     await update.message.reply_text(
         "👋 Hola, envíame la torre o casa y apartamento.\n"
         "Ejemplos válidos:\n"
@@ -98,12 +97,12 @@ def interpretar_codigo(texto: str):
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
 
-    # Impresión para verificar el texto recibido
+    # Depuración para verificar el texto recibido
     print(f"[DEBUG] Texto recibido: {texto}")
 
     tipo_str, apto_str = interpretar_codigo(texto)
 
-    # Verifica qué valores se están procesando
+    # Depuración para verificar el tipo y apartamento
     print(f"[DEBUG] Entrada procesada -> tipo={tipo_str}, apto={apto_str}")
 
     if not tipo_str or not apto_str:
@@ -169,4 +168,23 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-    await update.message.reply_text("❌ No encontré información para ese apartamento o casa.")
+    await update.message.reply_text("❌ No encontré información para esa vivienda.")
+
+# ==============================
+# Configuración del Bot y Polling
+# ==============================
+def main():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Comandos
+    application.add_handler(CommandHandler("start", start))
+
+    # Mensajes
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
+    # Iniciar el bot con polling
+    print("✅ Bot activo y escuchando...")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
