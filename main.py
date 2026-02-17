@@ -83,18 +83,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Interpretar código (torre/casa + apto)
 # ==============================
 def interpretar_codigo(texto: str):
-    # Eliminar caracteres no numéricos y letras
-    solo_numeros = ''.join(ch for ch in texto if ch.isdigit())
-    solo_letras = ''.join(ch for ch in texto if ch.isalpha())
-    
+    # Limpiar el texto y extraer los números y las letras
+    texto = texto.strip().replace("-", "").replace(" ", "")  # Eliminar espacios y guiones
+
+    solo_numeros = ''.join(ch for ch in texto if ch.isdigit())  # Extraer solo los números
+    solo_letras = ''.join(ch for ch in texto if ch.isalpha())  # Extraer solo las letras
+
+    print(f"[DEBUG] Texto procesado: {texto}")  # Depuración
     print(f"[DEBUG] Solo letras extraídas: {solo_letras}")  # Depuración
     print(f"[DEBUG] Solo números extraídos: {solo_numeros}")  # Depuración
 
+    # Si no hay suficiente longitud de números, no es válido
     if len(solo_numeros) < 3:
         return None, None
 
-    # Primer parte es la letra (tipo), el resto es el apartamento
-    tipo = solo_letras
+    tipo = solo_letras.upper()  # Usar letras en mayúsculas para consistencia
     apto = solo_numeros
 
     return tipo, apto
@@ -181,18 +184,4 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ==============================
 # Configuración del Bot y Polling
 # ==============================
-def main():
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    # Comandos
-    application.add_handler(CommandHandler("start", start))
-
-    # Mensajes
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-
-    # Iniciar el bot con polling
-    print("✅ Bot activo y escuchando...")
-    application.run_polling()
-
-if __name__ == "__main__":
-    main()
+def main
