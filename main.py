@@ -112,10 +112,6 @@ def interpretar_codigo(texto: str):
         tipo = solo_letras.lower()  # Asignar el tipo según las letras
         apto = solo_numeros
 
-    # Asegurarse de que tipo y apto no estén vacíos
-    if not tipo or not apto:
-        raise ValueError("No pude identificar la torre/casa o apartamento.")
-
     return tipo, apto
 
 # ==============================
@@ -127,11 +123,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Depuración para verificar el texto recibido
     print(f"[DEBUG] Texto recibido: {texto}")
 
-    try:
-        tipo_str, apto_str = interpretar_codigo(texto)
-    except ValueError as e:
-        await update.message.reply_text("Formato incorrecto. Ejemplo: 1-101 o 1101")
-        return
+    tipo_str, apto_str = interpretar_codigo(texto)
 
     # Depuración para verificar el tipo y apartamento
     print(f"[DEBUG] Entrada procesada -> tipo={tipo_str}, apto={apto_str}")
@@ -217,4 +209,5 @@ def main():
     print("✅ Bot activo y escuchando...")
     application.run_polling()
 
-if
+if __name__ == "__main__":
+    main()
