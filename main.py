@@ -69,6 +69,7 @@ def buscar_columna(fila: dict, contiene_subcadenas):
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[DEBUG] Comando /start recibido")  # Depuración para ver si el bot recibe el comando
     await update.message.reply_text(
         "👋 Hola, envíame la torre o casa y apartamento.\n"
         "Ejemplos válidos:\n"
@@ -97,12 +98,12 @@ def interpretar_codigo(texto: str):
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text.strip()
 
-    # Depuración para verificar el texto recibido
+    # Impresión para verificar el texto recibido
     print(f"[DEBUG] Texto recibido: {texto}")
 
     tipo_str, apto_str = interpretar_codigo(texto)
 
-    # Depuración para verificar el tipo y apartamento
+    # Verifica qué valores se están procesando
     print(f"[DEBUG] Entrada procesada -> tipo={tipo_str}, apto={apto_str}")
 
     if not tipo_str or not apto_str:
