@@ -76,7 +76,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 1101\n"
         "• T1101\n"
         "• C230\n"
-        "• 1 101"
+        "• 1 101\n"
+        "• casa90\n"
+        "• torre 101"
     )
 
 # ==============================
@@ -86,6 +88,7 @@ def interpretar_codigo(texto: str):
     # Limpiar el texto y extraer los números y las letras
     texto = texto.strip().replace("-", "").replace(" ", "")  # Eliminar espacios y guiones
 
+    # Detectar si la entrada tiene una letra para "torre" o "casa" y el número del apartamento
     solo_numeros = ''.join(ch for ch in texto if ch.isdigit())  # Extraer solo los números
     solo_letras = ''.join(ch for ch in texto if ch.isalpha())  # Extraer solo las letras
 
@@ -93,12 +96,19 @@ def interpretar_codigo(texto: str):
     print(f"[DEBUG] Solo letras extraídas: {solo_letras}")  # Depuración
     print(f"[DEBUG] Solo números extraídos: {solo_numeros}")  # Depuración
 
-    # Si no hay suficiente longitud de números, no es válido
     if len(solo_numeros) < 3:
         return None, None
 
-    tipo = solo_letras.upper()  # Usar letras en mayúsculas para consistencia
+    tipo = solo_letras.lower()  # Convertir las letras a minúsculas
     apto = solo_numeros
+
+    # Verificar si las letras indican "torre" o "casa"
+    if tipo == "c" or tipo == "casa":
+        tipo = "casa"
+    elif tipo == "t" or tipo == "torre":
+        tipo = "torre"
+    else:
+        tipo = None  # Si no es ni "c" ni "t", devolvemos None
 
     return tipo, apto
 
@@ -121,9 +131,9 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Verificar si es una torre o casa
-    if tipo_str == "C" and 1 <= int(apto_str) <= 280:
+    if tipo_str == "casa" and 1 <= int(apto_str) <= 280:
         vivienda = "casa"
-    elif tipo_str.isdigit() and 1 <= int(tipo_str) <= 21:
+    elif tipo_str == "torre" and 1 <= int(apto_str) <= 21:
         vivienda = "torre"
     else:
         await update.message.reply_text("No pude interpretar los datos. Asegúrate de que el formato sea correcto.")
