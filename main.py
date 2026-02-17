@@ -37,22 +37,28 @@ ESTADOS = {
 }
 
 # ==============================
-# Interpretar código
+# Buscar columna con palabras clave (para placas)
+# ==============================
+def buscar_columna(fila: dict, contiene_subcadenas):
+    for clave, valor in fila.items():
+        nombre = str(clave).strip().lower()
+        if all(sub in nombre for sub in contiene_subcadenas):
+            return valor
+    return None
+
+# ==============================
+# Interpretar código inteligente
 # ==============================
 def interpretar_codigo(texto: str):
     texto = texto.strip().lower().replace("-", "").replace(" ", "")
 
-    # Solo números (ej: 1201, 10201, 210104)
     if texto.isdigit() and len(texto) >= 4:
-        apto = texto[-3:]        # últimos 3 dígitos
-        torre = texto[:-3]       # todo lo anterior
-
+        apto = texto[-3:]
+        torre = texto[:-3]
         if torre == "":
             return "casa", apto, None
-
         return "torre", apto, torre
 
-    # Caso T10201
     if texto.startswith("t"):
         numeros = ''.join(c for c in texto if c.isdigit())
         if len(numeros) >= 4:
@@ -60,13 +66,11 @@ def interpretar_codigo(texto: str):
             torre = numeros[:-3]
             return "torre", apto, torre
 
-    # Caso C90
     if texto.startswith("c"):
         numeros = ''.join(c for c in texto if c.isdigit())
         if numeros:
             return "casa", numeros, None
 
-    # Solo número pequeño → casa
     if texto.isdigit():
         return "casa", texto, None
 
@@ -79,9 +83,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Envíame:\n\n"
         "• 1201\n"
-        "• T1201\n"
-        "• C90\n"
-        "• casa90"
+        "• 10201\n"
+        "• T210104\n"
+        "• C90"
     )
 
 # ==============================
@@ -113,8 +117,6 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             continue
 
         if tipo == tipo_fila and apto == apto_fila:
-
-            # Si es torre y el usuario especificó torre
             if tipo == "torre" and torre:
                 if torre_fila != str(torre):
                     continue
@@ -122,7 +124,11 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             estado_raw = str(fila.get("Estado", "")).strip().upper()
             emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
 
-            # Construir respuesta sin errores de f-string
+            # Buscar placas con función inteligente
+            placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
+            placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
+
+            # Construir respuesta segura
             respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
 
             if torre_fila:
@@ -131,13 +137,15 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
             respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
             respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
-            respuesta += f"{emoji} *Estado:* {estado_txt}"
+            respuesta += f"{emoji} *Estado:* {estado_txt}\n"
+            respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
+            respuesta += f"🏍️ *Placa moto:* {placa_moto}"
 
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
     await update.message.reply_text("❌ No encontrado.")
-
+    
 # ==============================
 # Iniciar Bot
 # ==============================
