@@ -44,7 +44,9 @@ except Exception as e:
     sh = gc.open("BOT TAMBORA")  # Nombre correcto de la hoja de cálculo en Google Sheets
 
 worksheet = sh.sheet1
-print("✅ Google Sheet conectado correctamente")# ==============================
+print("✅ Google Sheet conectado correctamente")
+
+# ==============================
 # Mapeo de estados
 # ==============================
 ESTADOS = {
@@ -61,7 +63,9 @@ def buscar_columna(fila: dict, contiene_subcadenas):
         nombre = str(clave).strip().lower()
         if all(sub in nombre for sub in contiene_subcadenas):
             return valor
-    return None# ==============================
+    return None
+
+# ==============================
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,7 +112,9 @@ def interpretar_codigo(texto: str):
         tipo = solo_letras.lower()  # Asignar el tipo según las letras
         apto = solo_numeros
 
-    return tipo, apto# ==============================
+    return tipo, apto
+
+# ==============================
 # Handler principal
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -185,11 +191,23 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-    await update.message.reply_text("❌ No encontré información para esa vivienda.")# ==============================
+    await update.message.reply_text("❌ No encontré información para esa vivienda.")
+
+# ==============================
 # Configuración del Bot y Polling
 # ==============================
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Comandos
-    application.add_handler
+    application.add_handler(CommandHandler("start", start))
+
+    # Mensajes
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
+    # Iniciar el bot con polling
+    print("✅ Bot activo y escuchando...")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
