@@ -171,6 +171,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
             respuesta += f"🏍️ *Placa moto:* {placa_moto}"
 
+            # Enviar el mensaje asegurándose de que esté bien formateado
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
