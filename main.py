@@ -127,58 +127,61 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(respuesta, parse_mode="Markdown")
                 return
 
-    # Si no es placa, proceder con búsqueda normal por torre y apartamento
-    tipo, apto, torre = interpretar_codigo(texto)
+        await update.message.reply_text("❌ No encontrado.")
 
-    if not tipo or not apto:
-        await update.message.reply_text("❌ Formato inválido.")
-        return
+    else:
+        # Si no es una placa, proceder con búsqueda normal por torre y apartamento
+        tipo, apto, torre = interpretar_codigo(texto)
 
-    try:
-        apto = int(apto)
-    except ValueError:
-        await update.message.reply_text("❌ Número inválido.")
-        return
-
-    datos = worksheet.get_all_records()
-
-    for fila in datos:
-        try:
-            tipo_fila = str(fila.get("Tipo Vivienda", "")).lower().strip()
-            apto_fila = int(fila.get("Apartamento", 0))
-            torre_fila = str(fila.get("Torre", "")).strip()
-        except (ValueError, TypeError):
-            continue
-
-        if tipo == tipo_fila and apto == apto_fila:
-            if tipo == "torre" and torre:
-                if torre_fila != str(torre):
-                    continue
-
-            estado_raw = str(fila.get("Estado", "")).strip().upper()
-            emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
-
-            # Buscar placas con función inteligente
-            placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
-            placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
-
-            # Construir respuesta segura
-            respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
-
-            if torre_fila:
-                respuesta += f"🏗️ *Torre:* {torre_fila}\n"
-
-            respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
-            respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
-            respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
-            respuesta += f"{emoji} *Estado:* {estado_txt}\n"
-            respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
-            respuesta += f"🏍️ *Placa moto:* {placa_moto}"
-
-            await update.message.reply_text(respuesta, parse_mode="Markdown")
+        if not tipo or not apto:
+            await update.message.reply_text("❌ Formato inválido.")
             return
 
-    await update.message.reply_text("❌ No encontrado.")
+        try:
+            apto = int(apto)
+        except ValueError:
+            await update.message.reply_text("❌ Número inválido.")
+            return
+
+        datos = worksheet.get_all_records()
+
+        for fila in datos:
+            try:
+                tipo_fila = str(fila.get("Tipo Vivienda", "")).lower().strip()
+                apto_fila = int(fila.get("Apartamento", 0))
+                torre_fila = str(fila.get("Torre", "")).strip()
+            except (ValueError, TypeError):
+                continue
+
+            if tipo == tipo_fila and apto == apto_fila:
+                if tipo == "torre" and torre:
+                    if torre_fila != str(torre):
+                        continue
+
+                estado_raw = str(fila.get("Estado", "")).strip().upper()
+                emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
+
+                # Buscar placas con función inteligente
+                placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
+                placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
+
+                # Construir respuesta segura
+                respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
+
+                if torre_fila:
+                    respuesta += f"🏗️ *Torre:* {torre_fila}\n"
+
+                respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
+                respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
+                respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
+                respuesta += f"{emoji} *Estado:* {estado_txt}\n"
+                respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
+                respuesta += f"🏍️ *Placa moto:* {placa_moto}"
+
+                await update.message.reply_text(respuesta, parse_mode="Markdown")
+                return
+
+        await update.message.reply_text("❌ No encontrado.")
     
 # ==============================
 # Iniciar Bot
