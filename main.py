@@ -104,14 +104,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ==============================
-# Buscar vivienda
+# Buscar vivienda o placa
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
 
-    tipo, apto, torre = interpretar_codigo(texto)
-
-    # Si es una placa, buscamos la torre directamente
+    # Verificar si es una placa (alfanumérica)
     if texto.strip().isalnum() and len(texto.strip()) >= 6:
         datos = worksheet.get_all_records()
         torre_encontrada = buscar_placa(texto, datos)
@@ -122,6 +120,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ Placa no encontrada.")
         return
+
+    tipo, apto, torre = interpretar_codigo(texto)
 
     if not tipo or not apto:
         await update.message.reply_text("❌ Formato inválido.")
