@@ -77,6 +77,20 @@ def interpretar_codigo(texto: str):
     return None, None, None
 
 # ==============================
+# Buscar placa en las filas
+# ==============================
+def buscar_placa(placa: str, datos):
+    for fila in datos:
+        placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
+        placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
+        
+        # Verificar si la placa carro o moto coincide
+        if placa_carro.strip().lower() == placa.strip().lower() or placa_moto.strip().lower() == placa.strip().lower():
+            torre = fila.get("Torre", "No encontrada")
+            return torre
+    return None
+
+# ==============================
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,7 +99,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 1201\n"
         "• 10201\n"
         "• T210104\n"
-        "• C90"
+        "• C90\n"
+        "• HMN835 (placa)"
     )
 
 # ==============================
@@ -95,6 +110,18 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
 
     tipo, apto, torre = interpretar_codigo(texto)
+
+    # Si es una placa, buscamos la torre directamente
+    if texto.strip().isalnum() and len(texto.strip()) >= 6:
+        datos = worksheet.get_all_records()
+        torre_encontrada = buscar_placa(texto, datos)
+        
+        if torre_encontrada:
+            await update.message.reply_text(f"🚗 *Placa:* {texto}\n🏗️ *Torre:* {torre_encontrada}")
+            return
+        else:
+            await update.message.reply_text("❌ Placa no encontrada.")
+        return
 
     if not tipo or not apto:
         await update.message.reply_text("❌ Formato inválido.")
