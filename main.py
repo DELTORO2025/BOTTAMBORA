@@ -60,6 +60,36 @@ def buscar_placa(placa: str, datos):
     return None
 
 # ==============================
+# Interpretar código inteligente (para torre y apartamento)
+# ==============================
+def interpretar_codigo(texto: str):
+    texto = texto.strip().lower().replace("-", "").replace(" ", "")
+
+    if texto.isdigit() and len(texto) >= 4:
+        apto = texto[-3:]
+        torre = texto[:-3]
+        if torre == "":
+            return "casa", apto, None
+        return "torre", apto, torre
+
+    if texto.startswith("t"):
+        numeros = ''.join(c for c in texto if c.isdigit())
+        if len(numeros) >= 4:
+            apto = numeros[-3:]
+            torre = numeros[:-3]
+            return "torre", apto, torre
+
+    if texto.startswith("c"):
+        numeros = ''.join(c for c in texto if c.isdigit())
+        if numeros:
+            return "casa", numeros, None
+
+    if texto.isdigit():
+        return "casa", texto, None
+
+    return None, None, None
+
+# ==============================
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,7 +114,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fila_encontrada = buscar_placa(texto, datos)
         
         if fila_encontrada:
-            # Construir la respuesta con toda la información
+            # Construir la respuesta con toda la información de la placa
             torre = fila_encontrada.get("Torre", "No encontrada")
             apto = fila_encontrada.get("Apartamento", "No encontrado")
             propietario = fila_encontrada.get("Propietario", "No registrado")
