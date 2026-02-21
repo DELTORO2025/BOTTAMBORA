@@ -115,7 +115,10 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         torre_encontrada = buscar_placa(texto, datos)
         
         if torre_encontrada:
-            await update.message.reply_text(f"🚗 *Placa:* {texto}\n🏗️ *Torre:* {torre_encontrada}")
+            # Mejorar el formato de la respuesta
+            respuesta = f"🚗 *Placa:* {texto}\n"
+            respuesta += f"🏗️ *Torre:* {torre_encontrada}"
+            await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
         else:
             await update.message.reply_text("❌ Placa no encontrada.")
@@ -155,8 +158,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
             placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
 
-            # Construir respuesta segura
-            respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
+            # Construir respuesta con saltos de línea para mejor formato
+            respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n\n"
 
             if torre_fila:
                 respuesta += f"🏗️ *Torre:* {torre_fila}\n"
