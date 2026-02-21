@@ -47,36 +47,6 @@ def buscar_columna(fila: dict, contiene_subcadenas):
     return None
 
 # ==============================
-# Interpretar código inteligente
-# ==============================
-def interpretar_codigo(texto: str):
-    texto = texto.strip().lower().replace("-", "").replace(" ", "")
-
-    if texto.isdigit() and len(texto) >= 4:
-        apto = texto[-3:]
-        torre = texto[:-3]
-        if torre == "":
-            return "casa", apto, None
-        return "torre", apto, torre
-
-    if texto.startswith("t"):
-        numeros = ''.join(c for c in texto if c.isdigit())
-        if len(numeros) >= 4:
-            apto = numeros[-3:]
-            torre = numeros[:-3]
-            return "torre", apto, torre
-
-    if texto.startswith("c"):
-        numeros = ''.join(c for c in texto if c.isdigit())
-        if numeros:
-            return "casa", numeros, None
-
-    if texto.isdigit():
-        return "casa", texto, None
-
-    return None, None, None
-
-# ==============================
 # Buscar placa en las filas
 # ==============================
 def buscar_placa(placa: str, datos):
@@ -86,8 +56,7 @@ def buscar_placa(placa: str, datos):
         
         # Verificar si la placa carro o moto coincide
         if placa_carro.strip().lower() == placa.strip().lower() or placa_moto.strip().lower() == placa.strip().lower():
-            torre = fila.get("Torre", "No encontrada")
-            return torre
+            return fila
     return None
 
 # ==============================
@@ -112,18 +81,37 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Verificar si es una placa (alfanumérica)
     if texto.isalnum() and len(texto) >= 6:  # Modificado para aceptar placas alfanuméricas
         datos = worksheet.get_all_records()
-        torre_encontrada = buscar_placa(texto, datos)
+        fila_encontrada = buscar_placa(texto, datos)
         
-        if torre_encontrada:
+        if fila_encontrada:
+            # Construir la respuesta con toda la información
+            torre = fila_encontrada.get("Torre", "No encontrada")
+            apto = fila_encontrada.get("Apartamento", "No encontrado")
+            propietario = fila_encontrada.get("Propietario", "No registrado")
+            saldo = fila_encontrada.get("Saldo", "No especificado")
+            estado_raw = str(fila_encontrada.get("Estado", "")).strip().upper()
+            emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
+
+            placa_carro = buscar_columna(fila_encontrada, ["placa", "carro"]) or "No registrada"
+            placa_moto = buscar_columna(fila_encontrada, ["placa", "moto"]) or "No registrada"
+
             # Mejorar el formato de la respuesta
             respuesta = f"🚗 *Placa:* {texto}\n"
-            respuesta += f"🏗️ *Torre:* {torre_encontrada}"
+            respuesta += f"🏗️ *Torre:* {torre}\n"
+            respuesta += f"🏠 *Apartamento:* {apto}\n"
+            respuesta += f"👤 *Propietario:* {propietario}\n"
+            respuesta += f"💰 *Saldo:* {saldo}\n"
+            respuesta += f"{emoji} *Estado:* {estado_txt}\n"
+            respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
+            respuesta += f"🏍️ *Placa moto:* {placa_moto}"
+
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
         else:
             await update.message.reply_text("❌ Placa no encontrada.")
         return
 
+    # Si no es una placa, proceder con la búsqueda por apartamento o torre
     tipo, apto, torre = interpretar_codigo(texto)
 
     if not tipo or not apto:
@@ -160,10 +148,8 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Construir respuesta con saltos de línea para mejor formato
             respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n\n"
-
             if torre_fila:
                 respuesta += f"🏗️ *Torre:* {torre_fila}\n"
-
             respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
             respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
             respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
@@ -171,7 +157,6 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
             respuesta += f"🏍️ *Placa moto:* {placa_moto}"
 
-            # Enviar el mensaje asegurándose de que esté bien formateado
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
