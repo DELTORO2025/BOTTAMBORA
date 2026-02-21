@@ -77,6 +77,20 @@ def interpretar_codigo(texto: str):
     return None, None, None
 
 # ==============================
+# Buscar placa en las filas
+# ==============================
+def buscar_placa(placa: str, datos):
+    for fila in datos:
+        placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
+        placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
+        
+        # Verificar si la placa carro o moto coincide
+        if placa_carro.strip().lower() == placa.strip().lower() or placa_moto.strip().lower() == placa.strip().lower():
+            torre = fila.get("Torre", "No encontrada")
+            return torre
+    return None
+
+# ==============================
 # Comando /start
 # ==============================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,102 +100,82 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 10201\n"
         "• T210104\n"
         "• C90\n"
-        "• NRT235 (placa)"
+        "• HMN835 (placa)"
     )
 
 # ==============================
-# Buscar vivienda
+# Buscar vivienda o placa
 # ==============================
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = update.message.text
+    texto = update.message.text.strip()
 
-    # Verificar si el texto contiene una placa
-    texto_placa = texto.strip().upper()
-
-    # Asegurarnos de que el texto tiene el formato adecuado de placa
-    if len(texto_placa) >= 5 and texto_placa[0:3] == "NRT":
-        placa = texto_placa
-
+    # Verificar si es una placa (alfanumérica)
+    if texto.isalnum() and len(texto) >= 6:  # Modificado para aceptar placas alfanuméricas
         datos = worksheet.get_all_records()
-
-        for fila in datos:
-            # Buscar placa carro y moto
-            placa_carro = buscar_columna(fila, ["placa", "carro"])
-            placa_moto = buscar_columna(fila, ["placa", "moto"])
-
-            # Si la placa carro o moto coinciden
-            if placa == placa_carro or placa == placa_moto:
-                estado_raw = str(fila.get("Estado", "")).strip().upper()
-                emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
-
-                respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
-                if fila.get("Torre"):
-                    respuesta += f"🏗️ *Torre:* {fila.get('Torre')}\n"
-                respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
-                respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
-                respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
-                respuesta += f"{emoji} *Estado:* {estado_txt}\n"
-                respuesta += f"🚗 *Placa carro:* {placa_carro or 'No registrada'}\n"
-                respuesta += f"🏍️ *Placa moto:* {placa_moto or 'No registrada'}"
-
-                await update.message.reply_text(respuesta, parse_mode="Markdown")
-                return
-
-        await update.message.reply_text("❌ No encontrado.")
-
-    else:
-        # Si no es una placa, proceder con búsqueda normal por torre y apartamento
-        tipo, apto, torre = interpretar_codigo(texto)
-
-        if not tipo or not apto:
-            await update.message.reply_text("❌ Formato inválido.")
+        torre_encontrada = buscar_placa(texto, datos)
+        
+        if torre_encontrada:
+            # Mejorar el formato de la respuesta
+            respuesta = f"🚗 *Placa:* {texto}\n"
+            respuesta += f"🏗️ *Torre:* {torre_encontrada}"
+            await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
+        else:
+            await update.message.reply_text("❌ Placa no encontrada.")
+        return
 
+    tipo, apto, torre = interpretar_codigo(texto)
+
+    if not tipo or not apto:
+        await update.message.reply_text("❌ Formato inválido.")
+        return
+
+    try:
+        apto = int(apto)
+    except ValueError:
+        await update.message.reply_text("❌ Número inválido.")
+        return
+
+    datos = worksheet.get_all_records()
+
+    for fila in datos:
         try:
-            apto = int(apto)
-        except ValueError:
-            await update.message.reply_text("❌ Número inválido.")
+            tipo_fila = str(fila.get("Tipo Vivienda", "")).lower().strip()
+            apto_fila = int(fila.get("Apartamento", 0))
+            torre_fila = str(fila.get("Torre", "")).strip()
+        except (ValueError, TypeError):
+            continue
+
+        if tipo == tipo_fila and apto == apto_fila:
+            if tipo == "torre" and torre:
+                if torre_fila != str(torre):
+                    continue
+
+            estado_raw = str(fila.get("Estado", "")).strip().upper()
+            emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
+
+            # Buscar placas con función inteligente
+            placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
+            placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
+
+            # Construir respuesta con saltos de línea para mejor formato
+            respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n\n"
+
+            if torre_fila:
+                respuesta += f"🏗️ *Torre:* {torre_fila}\n"
+
+            respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
+            respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
+            respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
+            respuesta += f"{emoji} *Estado:* {estado_txt}\n"
+            respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
+            respuesta += f"🏍️ *Placa moto:* {placa_moto}"
+
+            # Enviar el mensaje asegurándose de que esté bien formateado
+            await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
 
-        datos = worksheet.get_all_records()
-
-        for fila in datos:
-            try:
-                tipo_fila = str(fila.get("Tipo Vivienda", "")).lower().strip()
-                apto_fila = int(fila.get("Apartamento", 0))
-                torre_fila = str(fila.get("Torre", "")).strip()
-            except (ValueError, TypeError):
-                continue
-
-            if tipo == tipo_fila and apto == apto_fila:
-                if tipo == "torre" and torre:
-                    if torre_fila != str(torre):
-                        continue
-
-                estado_raw = str(fila.get("Estado", "")).strip().upper()
-                emoji, estado_txt = ESTADOS.get(estado_raw, ("⚪", "No especificado"))
-
-                # Buscar placas con función inteligente
-                placa_carro = buscar_columna(fila, ["placa", "carro"]) or "No registrada"
-                placa_moto = buscar_columna(fila, ["placa", "moto"]) or "No registrada"
-
-                # Construir respuesta segura
-                respuesta = f"🏢 *Tipo:* {fila.get('Tipo Vivienda')}\n"
-
-                if torre_fila:
-                    respuesta += f"🏗️ *Torre:* {torre_fila}\n"
-
-                respuesta += f"🏠 *Apartamento:* {fila.get('Apartamento')}\n"
-                respuesta += f"👤 *Propietario:* {fila.get('Propietario')}\n"
-                respuesta += f"💰 *Saldo:* {fila.get('Saldo')}\n"
-                respuesta += f"{emoji} *Estado:* {estado_txt}\n"
-                respuesta += f"🚗 *Placa carro:* {placa_carro}\n"
-                respuesta += f"🏍️ *Placa moto:* {placa_moto}"
-
-                await update.message.reply_text(respuesta, parse_mode="Markdown")
-                return
-
-        await update.message.reply_text("❌ No encontrado.")
+    await update.message.reply_text("❌ No encontrado.")
     
 # ==============================
 # Iniciar Bot
