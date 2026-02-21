@@ -85,7 +85,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 1201\n"
         "• 10201\n"
         "• T210104\n"
-        "• C90"
+        "• C90\n"
+        "• NRT235 (placa)"
     )
 
 # ==============================
