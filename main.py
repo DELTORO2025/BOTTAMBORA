@@ -95,10 +95,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = update.message.text
 
-    # Primero, intentar interpretar la entrada como placa
-    if texto.strip().lower().startswith('nrt'):
-        # Buscar por placa
-        placa = texto.strip().upper()
+    # Verificar si el texto contiene una placa
+    texto_placa = texto.strip().upper()
+
+    # Asegurarnos de que el texto tiene el formato adecuado de placa
+    if len(texto_placa) >= 5 and texto_placa[0:3] == "NRT":
+        placa = texto_placa
 
         datos = worksheet.get_all_records()
 
