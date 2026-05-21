@@ -148,8 +148,14 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(respuesta, parse_mode="Markdown")
             return
         else:
-            await update.message.reply_text("❌ Placa no encontrada.")
-        return
+            # SOLUCIÓN AL PROBLEMA DE 6 DÍGITOS: 
+            # Si asume que es placa y no la encuentra, en vez de lanzar error, 
+            # verificamos primero si tiene formato de apartamento para dejarlo continuar la búsqueda.
+            tipo_test, _, _ = interpretar_codigo(texto)
+            if not tipo_test:
+                await update.message.reply_text("❌ Placa no encontrada.")
+                return
+            # Si sí tiene formato de apartamento (ej. 17104), el bot continúa con el código de abajo.
 
     # Si no es una placa, proceder con la búsqueda por apartamento o torre
     tipo, apto, torre = interpretar_codigo(texto)
