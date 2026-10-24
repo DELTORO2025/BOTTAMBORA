@@ -119,7 +119,9 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # SOLUCIÓN: Usamos texto_evaluar. Se bajó a 5 por si buscan placas de motos
     if texto_evaluar.isalnum() and len(texto_evaluar) >= 5: 
-        datos = worksheet.get_all_records()
+        filas_raw = worksheet.get_all_values()
+        encabezados = filas_raw[0] if filas_raw else []
+        datos = [{encabezados[i]: (fila[i] if i < len(fila) else "") for i in range(len(encabezados)) if str(encabezados[i]).strip()} for fila in filas_raw[1:]]
         fila_encontrada = buscar_placa(texto, datos) # Se busca con el original
         
         if fila_encontrada:
@@ -170,7 +172,9 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Número inválido.")
         return
 
-    datos = worksheet.get_all_records()
+    filas_raw = worksheet.get_all_values()
+    encabezados = filas_raw[0] if filas_raw else []
+    datos = [{encabezados[i]: (fila[i] if i < len(fila) else "") for i in range(len(encabezados)) if str(encabezados[i]).strip()} for fila in filas_raw[1:]]
 
     for fila in datos:
         try:
